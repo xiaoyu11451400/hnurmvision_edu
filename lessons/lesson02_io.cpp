@@ -25,16 +25,14 @@ constexpr double kGimbalLimitDeg = 45.0; // 仿真器对协议俯仰角的机械
 // 把消息里的 ROS 时间戳换算成“距离现在多久”，再映射到程序 Clock。
 // 仿真器用的是 SystemTime；若换成仿真时间，这里会返回 nullopt，
 // 由调用方用收到消息的时刻兜底，至少保证帧间差分是单调的。
+
 std::optional<TimePoint> map_ros_stamp(const builtin_interfaces::msg::Time& stamp) {
   const auto ros_as_system =
-      std::chrono::system_clock::time_point{std::chrono::seconds(stamp.sec) +
-                                            std::chrono::nanoseconds(stamp.nanosec)};
+      std::chrono::system_clock::time_point{std::chrono::seconds(stamp.sec) + std::chrono::nanoseconds(stamp.nanosec)};
   const auto offset = std::chrono::system_clock::now() - ros_as_system;
-  const auto magnitude =
-      offset < std::chrono::system_clock::duration::zero() ? -offset : offset;
+  const auto magnitude = offset < std::chrono::system_clock::duration::zero() ? -offset : offset;
   if (magnitude > std::chrono::hours(24)) return std::nullopt;
-  return Clock::now() -
-         std::chrono::duration_cast<Clock::duration>(magnitude);
+  return Clock::now() - std::chrono::duration_cast<Clock::duration>(magnitude);
 }
 }  // namespace
 
@@ -81,9 +79,12 @@ void IoContext::on_image(ImageMsg::ConstSharedPtr msg) {
                      const_cast<unsigned char*>(msg->data.data()),
                      static_cast<std::size_t>(msg->step));
   cv::Mat image;
-  if (msg->encoding == "rgb8") {
+  if (msg->encoding == "rgb8") 
+  {
     cv::cvtColor(view, image, cv::COLOR_RGB2BGR);
-  } else {
+  } 
+  else 
+  {
     view.copyTo(image);
   }
 
@@ -98,8 +99,7 @@ void IoContext::on_feedback(RecvMsg::ConstSharedPtr msg) {
   if (!msg) return;
   std::lock_guard<std::mutex> lock(mutex_);
   feedback_valid_ = true;
-  feedback_time_ =
-      map_ros_stamp(msg->header.stamp).value_or(Clock::now());
+  feedback_time_ = map_ros_stamp(msg->header.stamp).value_or(Clock::now());
   gimbal_yaw_deg_ = static_cast<double>(msg->yaw);
   gimbal_pitch_deg_ = static_cast<double>(msg->pitch);
   gimbal_roll_deg_ = static_cast<double>(msg->roll);
@@ -143,6 +143,8 @@ std::optional<SensorData> IoContext::read() {
 
   delivered_seq_ = image_seq_;
   return data;
+  //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  //return std::nullopt;
 }
 
 void IoContext::publish_stop() {
@@ -166,9 +168,7 @@ void IoContext::write(const Command& command) {
     std::lock_guard<std::mutex> lock(mutex_);
     const double feedback_age =
         std::chrono::duration<double>(Clock::now() - feedback_time_).count();
-    auto_aim = feedback_valid_ && feedback_age <= kMaxInputAgeSec &&
-               work_mode_ ==
-                   hnurm_interfaces::msg::WorkMode::AUTO_AIM;
+    auto_aim = feedback_valid_ && feedback_age <= kMaxInputAgeSec && work_mode_ == hnurm_interfaces::msg::WorkMode::AUTO_AIM;
   }
 
   const bool angles_ok =
@@ -183,18 +183,17 @@ void IoContext::write(const Command& command) {
   msg.header.stamp = node_->now();
   msg.header.frame_id = "gimbal_link";
   msg.target_state.data =
-      fire ? hnurm_interfaces::msg::TargetState::FIRE
-           : hnurm_interfaces::msg::TargetState::CONVERGING;
+      fire ? hnurm_interfaces::msg::TargetState::FIRE : hnurm_interfaces::msg::TargetState::CONVERGING;
   msg.yaw = static_cast<float>(command.yaw * kRadToDeg);
 
   // Command.pitch 是 IMU 系中枪管的绝对仰角；协议里的 pitch 是云台本体俯仰角。
   // 车模的相机/枪管相对云台有 25° 固定装配仰角：protocol_pitch = mount - elevation。
-  const double protocol_pitch_deg =
-      mount_pitch_deg_ - command.pitch * kRadToDeg;
+  const double protocol_pitch_deg = mount_pitch_deg_ - command.pitch * kRadToDeg;
   if (std::abs(protocol_pitch_deg) > kGimbalLimitDeg) {
     publish_stop();  // 超出机械限位就放手
     return;
   }
+
   msg.pitch = static_cast<float>(protocol_pitch_deg);
 
   // 仿真器把 target_distance == -1 当成停止；控制时必须给非 -1 的值。
