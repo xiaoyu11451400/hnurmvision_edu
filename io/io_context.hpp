@@ -19,10 +19,9 @@
 #include <optional>
 #include <utility>
 
-
 namespace training::io {
 struct IoContext {
-  explicit IoContext(Config cfg) : config( std::move(cfg) ){}
+  explicit IoContext(Config cfg) : config(std::move(cfg)) {}
 
   Config config;
   void open();
@@ -30,14 +29,13 @@ struct IoContext {
   void write(const Command& command);
   void close();
 
-  using RecvMsg = hnurm_interfaces::msg::VisionRecvData;
-private:
+ private:
   using ImageMsg = sensor_msgs::msg::Image;
-  
+  using RecvMsg = hnurm_interfaces::msg::VisionRecvData;
   using SendMsg = hnurm_interfaces::msg::VisionSendData;
 
-  void on_image( ImageMsg::ConstSharedPtr msg);
-  void on_feedback( RecvMsg::ConstSharedPtr msg);
+  void on_image(ImageMsg::ConstSharedPtr msg);
+  void on_feedback(RecvMsg::ConstSharedPtr msg);
   void publish_stop();
 
   rclcpp::Context::SharedPtr context_;
@@ -49,9 +47,8 @@ private:
 
   mutable std::mutex mutex_;
   TimePoint feedback_time_{};
-  cv::Mat latest_image_; //CV_8UC3 BGR，像素内存与 ROS 消息无关
+  cv::Mat latest_image_;  // CV_8UC3 BGR，像素内存与 ROS 消息无关
   TimePoint latest_image_time_{};
-
   std::uint64_t image_seq_ = 0;
   std::uint64_t delivered_seq_ = 0;
 
@@ -61,7 +58,7 @@ private:
   double gimbal_roll_deg_ = 0.0;
   double bullet_speed_mps_ = 0.0;
   std::uint8_t work_mode_ = 0;
-  double mount_pitch_deg_ = 25.0; //由 camera_to_gimbal 推得，仿真车模为 25
+  double mount_pitch_deg_ = 25.0;  // 由 camera_to_gimbal 推得，仿真车模为 25
 };
 }  // namespace training::io
 
