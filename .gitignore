@@ -22,3 +22,8 @@
 
 # Local simulation diagnostics
 /simulation/outputs/
+
+
+
+#myself
+/exported_text
