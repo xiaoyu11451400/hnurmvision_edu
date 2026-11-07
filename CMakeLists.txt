@@ -9,6 +9,7 @@ find_package(hnurm_interfaces REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui calib3d)
 find_package(Eigen3 REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(OpenVINO REQUIRED)
 add_library(training_io io/config.cpp)
 target_include_directories(training_io PUBLIC include io ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(training_io Eigen3::Eigen yaml-cpp ${OpenCV_LIBS})
@@ -17,6 +18,7 @@ target_compile_options(training_io PRIVATE -Wall -Wextra -Wpedantic)
 add_library(training_lessons lessons/lesson02_io.cpp
  lessons/lesson03_detection.cpp lessons/lesson04_tracking.cpp
  lessons/lesson05_aiming.cpp)
-target_link_libraries(training_lessons PUBLIC training_io)
+# 第三讲使用 OpenVINO 原生 C++ API 推理
+target_link_libraries(training_lessons PUBLIC training_io PRIVATE openvino::runtime)
 add_executable(training src/main.cpp)
 target_link_libraries(training PRIVATE training_lessons)
