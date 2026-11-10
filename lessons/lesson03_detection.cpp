@@ -19,7 +19,7 @@ namespace {
 
 // ---------------- 模型与后处理配置 ----------------
 const std::string MODEL_PATH = "model/best.xml";
-constexpr float CONF_THRESHOLD = 0.5f;
+constexpr float CONF_THRESHOLD = 0.75f;
 constexpr float NMS_THRESHOLD = 0.4f;
 constexpr int INPUT_W = 640;
 constexpr int INPUT_H = 640;
