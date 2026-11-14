@@ -8,6 +8,7 @@ namespace {
 volatile std::sig_atomic_t interrupted = 0;
 void on_signal(int) { interrupted = 1; }
 
+// 第二讲的相机显示窗口：检测框和置信度直接画在这张画面的 Mat 上再输出
 constexpr const char* kViewWindowName = "RoboMaster training";
 constexpr int kKeyEsc = 27;
 }
@@ -25,14 +26,18 @@ int main(int argc, char** argv) {
   bool quit = false;
 
   while (!quit && !interrupted) {
-    const auto input = devices.read();
+    auto input = devices.read();
     training::Command command{};
     if (input) {
       const auto armors = training::lesson03_detection(input->image);
+      // 先跟踪：PnP 使用未绘制的原始图像，绘制不会影响解算
       const auto target = training::lesson04_tracking(
           armors, input->timestamp, input->imu_q, calibration, tracking);
       if (target)
         command = training::lesson05_aiming(*target, input->timestamp, input->bullet_speed);
+
+      // 检测框/置信度直接画在第二讲订阅得到的原始相机图像上（原地绘制）
+      training::lesson03_draw_armors(input->image, armors);
     }
     if (interrupted) break;
     devices.write(command);
@@ -47,17 +52,6 @@ int main(int argc, char** argv) {
       quit = true;
     } else if (key == 'q' || key == 'Q') {
       quit = true;
-    } else if (key == 'v' || key == 'V') {
-      const bool enable = !training::lesson03_draw_enabled();
-      if (enable) {
-        // 先切回开启状态，下一帧 lesson03 会重新 imshow 并创建同名窗口
-        training::lesson03_set_draw(true);
-        cv::namedWindow(training::kDetectionWindowName, cv::WINDOW_AUTOSIZE);
-      } else {
-        // 先销毁窗口再通知 lesson03 停止显示，避免本帧之后残留空窗口
-        cv::destroyWindow(training::kDetectionWindowName);
-        training::lesson03_set_draw(false);
-      }
     }
   }
 

@@ -19,7 +19,7 @@ namespace {
 
 // ---------------- 模型与后处理配置 ----------------
 const std::string MODEL_PATH = "model/best.xml";
-constexpr float CONF_THRESHOLD = 0.75f;
+constexpr float CONF_THRESHOLD = 0.65f;
 constexpr float NMS_THRESHOLD = 0.4f;
 constexpr int INPUT_W = 640;
 constexpr int INPUT_H = 640;
@@ -31,9 +31,6 @@ constexpr int NUM_KEYPOINTS = 4;  // 每个装甲板 4 个角点，每个点 x,y
 // 在验证集 200 张图上实测：交换后召回 85.8%，不交换只有 72.6%。
 constexpr bool SWAP_RB = true;
 
-// 录制/演示用的可视化开关；运行时可用 lesson03_set_draw 切换，不影响检测结果。
-bool DRAW_RESULT = true;
-bool WINDOW_CREATED = false;  // 是否已创建过窗口，用于判断用户是否点了关闭按钮
 constexpr int VIEW_LINE_THICKNESS = 2;
 constexpr double VIEW_FONT_SCALE = 0.6;
 constexpr int VIEW_FONT_THICKNESS = 2;
@@ -128,14 +125,10 @@ void drawArmors(cv::Mat& image, const std::vector<Armor>& armors) {
 
 }  // namespace
 
-// 运行时开关检测结果的可视化窗口；关闭时窗口会在 main 里销毁。
-void lesson03_set_draw(bool enabled) {
-  DRAW_RESULT = enabled;
-  // 重新打开时当作从未创建过，防止误把旧窗口状态当成"用户已关闭"
-  if (!enabled) WINDOW_CREATED = false;
+// 在第二讲订阅到的原始相机图像上原地绘制；由 main 调用，绘制后仍在原显示窗口输出。
+void lesson03_draw_armors(cv::Mat& image, const std::vector<Armor>& armors) {
+  if (!image.empty()) drawArmors(image, armors);
 }
-
-bool lesson03_draw_enabled() { return DRAW_RESULT; }
 
 // 第三讲：装甲板检测
 // 输入：不可修改的 CV_8UC3 BGR 图像。
@@ -291,14 +284,8 @@ std::vector<Armor> lesson03_detection(const cv::Mat& image) {
             [](const Armor& a, const Armor& b) { return a.confidence > b.confidence; });
 
   // ---------------- 6. 可视化 ----------------
-  // 检测框只画在本地副本上，input->image 保持原样：
-  // 一是第四讲 PnP 要用不受绘制像素影响的图像，二是 main 里显示的画面由这里负责。
-  if (DRAW_RESULT) {
-    cv::Mat view = image.clone();
-    drawArmors(view, armors);
-    cv::imshow(kDetectionWindowName, view);
-    WINDOW_CREATED = true;
-  }
+  // 绘制交给 main 在原始相机图像上完成（lesson03_draw_armors），
+  // 这里只返回检测结果，保证第四讲 PnP 拿到的是未绘制的图像。
   return armors;
 }
 }  // namespace training
